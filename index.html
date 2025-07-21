@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Itinerary: 50th UBE Training, Zhengzhou</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Blue & Slate -->
+    <!-- Application Structure Plan: The application uses a tab-based navigation ('Itinerary', 'Training Focus', 'Travel Info', 'Checklist') to organize information by user intent, which is more intuitive than a single long document. This structure allows users to quickly access the specific information they need without excessive scrolling. The core 'Itinerary' section uses interactive day-selector buttons to reveal daily schedules one at a time. This progressive disclosure prevents information overload and focuses user attention. This design was chosen to transform a static document into a user-centric, task-oriented tool that is easier to navigate and digest, especially on mobile devices. -->
+    <!-- Visualization & Content Choices: 1. Itinerary Timeline (HTML/JS): Goal=Organize/Inform. An interactive day-by-day timeline is used instead of a static list. Interaction=Clicking a day reveals its schedule. Justification=Reduces cognitive load and provides a clear, focused view of daily events. 2. Training Activities Chart (Chart.js Doughnut): Goal=Compare/Analyze. Visualizes the proportion of time spent on Lectures, Observation, and Hands-on training. Interaction=Hover for tooltips. Justification=Offers a quick, data-driven overview of the program's focus, which is not immediately apparent from the text-only schedule. 3. Interactive Checklist (HTML/JS): Goal=Action/Inform. A checklist for trip preparation. Interaction=Click to toggle completion status. Justification=Increases utility by allowing users to track their preparation progress. All choices avoid SVG/Mermaid in favor of standard, interactive web components. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .tab-active {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .day-active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .checklist-item-done {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">50th UBE Training Itinerary</h1>
+            <p class="text-lg text-slate-600 mt-2">Zhengzhou, China | August 4 - 10, 2025</p>
+        </header>
+
+        <main>
+            <nav class="flex flex-wrap justify-center border-b border-slate-200 mb-8">
+                <button data-tab="itinerary" class="nav-tab py-3 px-4 sm:px-6 font-medium text-slate-600 border-b-2 border-transparent hover:text-blue-500 hover:border-blue-500 transition-all duration-300 tab-active">Itinerary</button>
+                <button data-tab="training" class="nav-tab py-3 px-4 sm:px-6 font-medium text-slate-600 border-b-2 border-transparent hover:text-blue-500 hover:border-blue-500 transition-all duration-300">Training Focus</button>
+                <button data-tab="travel" class="nav-tab py-3 px-4 sm:px-6 font-medium text-slate-600 border-b-2 border-transparent hover:text-blue-500 hover:border-blue-500 transition-all duration-300">Travel Info</button>
+                <button data-tab="checklist" class="nav-tab py-3 px-4 sm:px-6 font-medium text-slate-600 border-b-2 border-transparent hover:text-blue-500 hover:border-blue-500 transition-all duration-300">Checklist</button>
+            </nav>
+
+            <div id="itinerary" class="tab-content">
+                <div class="text-center mb-8">
+                     <p class="text-slate-600 max-w-3xl mx-auto">This section provides a detailed, day-by-day schedule for the entire trip. Click on a specific day to view its agenda, from training sessions to banquets. Special events like live surgeries and hands-on training are highlighted for your convenience.</p>
+                </div>
+                <div class="flex justify-center flex-wrap gap-2 mb-8">
+                </div>
+                <div id="itinerary-details">
+                </div>
+            </div>
+
+            <div id="training" class="tab-content hidden">
+                 <div class="text-center mb-8">
+                     <p class="text-slate-600 max-w-3xl mx-auto">Here you can find a high-level overview of the training program. The chart shows the distribution of different learning activities, while the collapsible list below details the key lecture topics that will be covered by Dr. Yang Hejun throughout the week.</p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8 items-center">
+                    <div class="chart-container">
+                        <canvas id="trainingChart"></canvas>
+                    </div>
+                    <div id="lecture-topics" class="space-y-2">
+                    </div>
+                </div>
+            </div>
+
+            <div id="travel" class="tab-content hidden">
+                <div class="text-center mb-8">
+                     <p class="text-slate-600 max-w-3xl mx-auto">All essential travel and logistical information is consolidated here. You'll find details on flights, accommodation, and the training venue, along with practical tips regarding local weather, currency, and sightseeing opportunities to help you plan your free time.</p>
+                </div>
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </div>
+
+            <div id="checklist" class="tab-content hidden">
+                 <div class="text-center mb-8">
+                     <p class="text-slate-600 max-w-3xl mx-auto">Use this interactive checklist to ensure you have everything you need for a smooth trip. Click on each item to mark it as complete. This helps you track your preparations for travel, documentation, and the training itself.</p>
+                </div>
+                <div class="max-w-md mx-auto bg-white rounded-xl shadow-sm p-6">
+                    <ul id="preparation-list" class="space-y-4">
+                    </ul>
+                </div>
+            </div>
+        </main>
+
+        <footer class="text-center mt-12 pt-6 border-t border-slate-200">
+            <p class="text-sm text-slate-500">Wishing you a successful and enriching training experience!</p>
+        </footer>
+    </div>
+
+    <script>
+        const itineraryData = {
+            'Day 1': { date: 'Aug 4, Mon', icon: '✈️', events: [ { time: 'Afternoon', title: 'Arrival in Zhengzhou (CGO)', description: 'Depart BKK on SL 964. Transfer to Hairong Hotel.' }, { time: '15:00-17:00', title: 'Opening Ceremony & Lecture', description: 'Clinical Application of UBE Technology in Cervicothoracic and Lumbar Spine. - Dr. Hejun Yang' }, { time: '18:00', title: 'Welcome Banquet', description: 'Meet the faculty and fellow participants.' } ] },
+            'Day 2': { date: 'Aug 5, Tue', icon: '📚', events: [ { time: '08:00-08:50', title: 'Morning Meeting & Ward Rounds', description: '' }, { time: '09:00 -', title: 'Surgical Observation in OR', description: '' }, { time: '16:00-17:30', title: 'Afternoon Lectures', description: 'UBE Theoretical Basis; Standardized Operation for Lumbar Spinal Stenosis.' } ] },
+            'Day 3': { date: 'Aug 6, Wed', icon: '📚', events: [ { time: '08:00-08:50', title: 'Morning Meeting & Ward Rounds', description: '' }, { time: '09:00 -', title: 'Surgical Observation in OR', description: '' }, { time: '16:00-17:30', title: 'Afternoon Lectures', description: 'UBE for Lumbar Fenestration & Nucleus Pulposus; UBE-LIF Process.' } ] },
+            'Day 4': { date: 'Aug 7, Thu', icon: '📚', events: [ { time: '08:00-08:50', title: 'Morning Meeting & Ward Rounds', description: '' }, { time: '09:00 -', title: 'Surgical Observation in OR', description: '' }, { time: '16:00-17:30', title: 'Afternoon Lectures', description: 'UBE for Cervical Radiculopathy; Posterior UBE Laminectomy; MOEA-ACDF.' } ] },
+            'Day 5': { date: 'Aug 8, Fri', icon: '🔪', special: true, events: [ { time: '09:00 -', title: 'Special Session: Live Surgery', description: 'Observation of live surgical procedures.' }, { time: '16:00-17:30', title: 'Afternoon Lectures', description: 'UBE for Thoracic Decompression; Extended UBE Applications.' } ] },
+            'Day 6': { date: 'Aug 9, Sat', icon: '🐾', special: true, events: [ { time: '09:00-17:00', title: 'Special Session: Hands-On Training', description: 'Full-day animal/cadaver hands-on workshop.' } ] },
+            'Day 7': { date: 'Aug 10, Sun', icon: '🎓', special: true, events: [ { time: '09:00-17:00', title: 'Final Hands-On Training', description: 'Final day of the animal/cadaver hands-on workshop.' }, { time: '17:10-17:50', title: 'Graduation Ceremony', description: 'Certificate issuance and feedback session.' }, { time: '18:00', title: 'Farewell Banquet', description: '' }, { time: 'Late Evening', title: 'Departure', description: 'Transfer to CGO for flight SL 965 to Bangkok.' } ] }
+        };
+
+        const lectureData = [
+            { day: 'Day 1', topic: 'Clinical Application of UBE in Cervicothoracic and Lumbar Spine' },
+            { day: 'Day 2', topic: 'UBE Theoretical Basis, Instruments & Standardized Operation for Lumbar Stenosis' },
+            { day: 'Day 3', topic: 'UBE for Lumbar Fenestration, Nucleus Pulposus & UBE-LIF Standardized Process' },
+            { day: 'Day 4', topic: 'UBE for Cervical Radiculopathy, Posterior Laminectomy & MOEA-ACDF' },
+            { day: 'Day 5', topic: 'UBE for Thoracic Spinal Canal Decompression & Extended Applications' }
+        ];
+
+        const travelData = [
+            { icon: '✈️', title: 'Flights', items: ['Departure: Mon, Aug 4 - SL 964 (BKK → CGO)', 'Return: Sun, Aug 10 - SL 965 (CGO → BKK)'] },
+            { icon: '🏨', title: 'Accommodation', items: ['Hotel: Hairong Hotel', '<a href="https://www.google.com/maps/search/?api=1&query=Hairong+Hotel,+Zhengzhou" target="_blank" class="text-blue-500 hover:underline">View on Google Maps</a>'] },
+            { icon: '🏥', title: 'Training Venue', items: ["The Third People's Hospital of Henan Province", '<a href="https://www.google.com/maps/search/?api=1&query=The+Third+People\'s+Hospital+of+Henan+Province,+Zhengzhou" target="_blank" class="text-blue-500 hover:underline">View on Google Maps</a>'] },
+            { icon: '☀️', title: 'Weather (Early Aug)', items: ['Hot & humid: 25°C to 32°C', 'Possibility of rain, pack an umbrella.'] },
+            { icon: '💴', title: 'Currency & Payments', items: ['Chinese Yuan (CNY)', '1 CNY ≈ 5 THB (check latest rate)', 'Cash is recommended for small purchases.'] },
+            { icon: '🏯', title: 'Sightseeing', items: ['Shaolin Temple (Kung Fu birthplace)', 'Millennium City Park (Historical theme park)'] }
+        ];
+
+        const checklistData = [
+            "Valid Chinese Visa", "Passport (valid for 6+ months)", "Book Flights (SL 964 / SL 965)",
+            "Confirm Hotel Booking (Hairong Hotel)", "Power Adapter (Type A/I)", "Install VPN on phone/laptop",
+            "Download translation app (e.g., Google Translate)", "Business Cards for networking", "Pack comfortable shoes", "Pack a light raincoat/umbrella"
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.nav-tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const itineraryButtonsContainer = document.querySelector('#itinerary .flex');
+            const itineraryDetailsContainer = document.getElementById('itinerary-details');
+            const lectureTopicsContainer = document.getElementById('lecture-topics');
+            const travelContainer = document.querySelector('#travel .grid');
+            const checklistContainer = document.getElementById('preparation-list');
+
+            function setupTabs() {
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        tabs.forEach(t => t.classList.remove('tab-active'));
+                        tab.classList.add('tab-active');
+
+                        tabContents.forEach(content => content.classList.add('hidden'));
+                        document.getElementById(tab.dataset.tab).classList.remove('hidden');
+                    });
+                });
+            }
+
+            function renderItinerary() {
+                Object.keys(itineraryData).forEach(day => {
+                    const dayInfo = itineraryData[day];
+                    const button = document.createElement('button');
+                    button.dataset.day = day;
+                    button.className = `day-selector py-2 px-4 rounded-full text-sm font-medium transition-colors duration-200 ${dayInfo.special ? 'border-2 border-amber-400' : 'bg-slate-200 text-slate-700'} hover:bg-blue-500 hover:text-white`;
+                    button.innerHTML = `${dayInfo.icon} ${day}`;
+                    itineraryButtonsContainer.appendChild(button);
+                });
+
+                const daySelectors = document.querySelectorAll('.day-selector');
+                daySelectors.forEach(button => {
+                    button.addEventListener('click', () => {
+                        daySelectors.forEach(btn => btn.classList.remove('day-active'));
+                        button.classList.add('day-active');
+                        renderItineraryDetails(button.dataset.day);
+                    });
+                });
+                daySelectors[0].click();
+            }
+
+            function renderItineraryDetails(day) {
+                const dayData = itineraryData[day];
+                let detailsHtml = `<div class="bg-white rounded-xl shadow-lg p-6 animate-fade-in">
+                    <h3 class="text-xl font-bold mb-1">${day}: <span class="text-slate-600 font-medium">${dayData.date}</span></h3>
+                    <div class="space-y-4 mt-4">`;
+                dayData.events.forEach(event => {
+                    detailsHtml += `
+                        <div class="flex items-start gap-4">
+                            <div class="w-20 text-right text-sm font-semibold text-blue-600">${event.time}</div>
+                            <div class="flex-1 border-l-2 border-slate-200 pl-4">
+                                <h4 class="font-semibold">${event.title}</h4>
+                                ${event.description ? `<p class="text-sm text-slate-500">${event.description}</p>` : ''}
+                            </div>
+                        </div>`;
+                });
+                detailsHtml += `</div></div>`;
+                itineraryDetailsContainer.innerHTML = detailsHtml;
+            }
+
+            function renderTrainingFocus() {
+                lectureData.forEach(item => {
+                    const detail = document.createElement('details');
+                    detail.className = 'bg-white rounded-lg shadow-sm p-3 cursor-pointer';
+                    detail.innerHTML = `<summary class="font-semibold text-slate-800">${item.day}: Lecture Topics</summary>
+                                        <p class="mt-2 text-slate-600 text-sm">${item.topic}</p>`;
+                    lectureTopicsContainer.appendChild(detail);
+                });
+
+                const ctx = document.getElementById('trainingChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Surgical Observation', 'Lectures', 'Hands-On Training'],
+                        datasets: [{
+                            label: 'Training Hours Distribution',
+                            data: [16, 8, 16],
+                            backgroundColor: ['#60a5fa', '#3b82f6', '#1d4ed8'],
+                            borderColor: '#f8fafc',
+                            borderWidth: 4,
+                            hoverOffset: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { padding: 20 } },
+                            tooltip: {
+                                callbacks: { label: (context) => ` ${context.label}: approx. ${context.raw} hours` }
+                            }
+                        },
+                        cutout: '60%'
+                    }
+                });
+            }
+
+            function renderTravelInfo() {
+                travelData.forEach(card => {
+                    let itemsHtml = card.items.map(item => `<li class="text-slate-600">${item}</li>`).join('');
+                    const cardHtml = `
+                        <div class="bg-white rounded-xl shadow-sm p-6 flex flex-col">
+                            <h3 class="text-lg font-bold mb-3 flex items-center gap-3"><span class="text-2xl">${card.icon}</span> ${card.title}</h3>
+                            <ul class="space-y-2 list-disc list-inside">${itemsHtml}</ul>
+                        </div>`;
+                    travelContainer.innerHTML += cardHtml;
+                });
+            }
+            
+            function renderChecklist() {
+                checklistData.forEach(itemText => {
+                    const li = document.createElement('li');
+                    li.className = 'checklist-item flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-slate-100';
+                    li.innerHTML = `<input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 pointer-events-none">
+                                    <span class="flex-1">${itemText}</span>`;
+                    li.addEventListener('click', () => {
+                        const checkbox = li.querySelector('input');
+                        const span = li.querySelector('span');
+                        checkbox.checked = !checkbox.checked;
+                        span.classList.toggle('checklist-item-done');
+                    });
+                    checklistContainer.appendChild(li);
+                });
+            }
+
+            setupTabs();
+            renderItinerary();
+            renderTrainingFocus();
+            renderTravelInfo();
+            renderChecklist();
+        });
+    </script>
+</body>
+</html>
